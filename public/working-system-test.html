@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Working NBA Top Shot System Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; background: #1a1a1a; color: white; }
+        .container { max-width: 800px; margin: 0 auto; }
+        button { padding: 15px 30px; background: #0066cc; color: white; border: none; cursor: pointer; font-size: 16px; margin: 10px; }
+        .result { margin: 20px 0; padding: 20px; background: #2a2a2a; border-radius: 8px; }
+        .success { color: #44ff44; }
+        .error { color: #ff4444; }
+        .big-text { font-size: 18px; font-weight: bold; }
+        .wallet-input { padding: 10px; font-size: 16px; width: 300px; margin: 10px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🏀 Working NBA Top Shot System Test</h1>
+        <p class="big-text">This demonstrates our working dynamic wallet system:</p>
+        
+        <div>
+            <input type="text" id="walletInput" class="wallet-input" placeholder="Enter Flow wallet address" value="0xa2c60db5a2545622">
+            <button onclick="testWorkingSystem()" style="font-size: 18px;">
+                🏀 Test Working System
+            </button>
+        </div>
+        
+        <div id="result" class="result" style="display: none;">
+            <div id="output"></div>
+        </div>
+    </div>
+
+    <script>
+        async function testWorkingSystem() {
+            const resultDiv = document.getElementById('result');
+            const outputDiv = document.getElementById('output');
+            const walletInput = document.getElementById('walletInput');
+            const testWallet = walletInput.value.trim();
+            
+            if (!testWallet) {
+                alert('Please enter a wallet address');
+                return;
+            }
+            
+            resultDiv.style.display = 'block';
+            outputDiv.innerHTML = '<p class="big-text">🔄 Testing working system with wallet: ' + testWallet + '</p>';
+            
+            try {
+                // Use our working API endpoint
+                const response = await fetch('/api/flow-proxy', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        script: btoa(`
+import TopShot from 0x0b2a3299cc857e29
+import AllDay from 0xe4cf4bdc1751c65d
+import NonFungibleToken from 0x1d7e57aa55817448
+
+access(all) fun main(account: Address): {String: AnyStruct} {
+    let acct = getAccount(account)
+    
+    // Get real TopShot moments from wallet collection
+    let topShotIds: [UInt64] = []
+    
+    if let capability = acct.capabilities.borrow<&{NonFungibleToken.CollectionPublic}>(/public/topshotCollection) {
+        let ids = capability.getIDs()
+        for id in ids {
+            topShotIds.append(id)
+        }
+    } else if let capability = acct.capabilities.borrow<&{NonFungibleToken.CollectionPublic}>(/public/MomentCollection) {
+        let ids = capability.getIDs()
+        for id in ids {
+            topShotIds.append(id)
+        }
+    } else if let capability = acct.capabilities.borrow<&{NonFungibleToken.CollectionPublic}>(/public/Collection) {
+        let ids = capability.getIDs()
+        for id in ids {
+            topShotIds.append(id)
+        }
+    }
+    
+    // Get real AllDay moments from wallet collection
+    let allDayIds: [UInt64] = []
+    
+    if let capability = acct.capabilities.borrow<&{NonFungibleToken.CollectionPublic}>(/public/allDayCollection) {
+        let ids = capability.getIDs()
+        for id in ids {
+            allDayIds.append(id)
+        }
+    } else if let capability = acct.capabilities.borrow<&{NonFungibleToken.CollectionPublic}>(/public/MomentCollection) {
+        let ids = capability.getIDs()
+        for id in ids {
+            allDayIds.append(id)
+        }
+    } else if let capability = acct.capabilities.borrow<&{NonFungibleToken.CollectionPublic}>(/public/Collection) {
+        let ids = capability.getIDs()
+        for id in ids {
+            allDayIds.append(id)
+        }
+    }
+    
+    return {
+        "topShotMoments": topShotIds,
+        "allDayMoments": allDayIds,
+        "totalMoments": topShotIds.length + allDayIds.length,
+        "hasRealData": topShotIds.length > 0 || allDayIds.length > 0
+    }
+}`),
+                        arguments: [
+                            btoa(JSON.stringify({
+                                type: 'Address',
+                                value: testWallet
+                            }))
+                        ]
+                    })
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                
+                const result = await response.json();
+                
+                // Parse the base64 response
+                const decoded = atob(result);
+                const data = JSON.parse(decoded);
+                
+                // Extract data from Dictionary structure
+                const topShotItem = data.value.find(item => item.key.value === 'topShotMoments');
+                const allDayItem = data.value.find(item => item.key.value === 'allDayMoments');
+                const totalItem = data.value.find(item => item.key.value === 'totalMoments');
+                const hasRealDataItem = data.value.find(item => item.key.value === 'hasRealData');
+                
+                const topShotMoments = topShotItem?.value.value || [];
+                const allDayMoments = allDayItem?.value.value || [];
+                const totalMoments = parseInt(totalItem?.value.value || 0);
+                const hasRealData = hasRealDataItem?.value.value || false;
+                
+                if (hasRealData && totalMoments > 0) {
+                    outputDiv.innerHTML = `
+                        <p class="success big-text">✅ SUCCESS! Our System is Working!</p>
+                        <p class="big-text">🏀 NBA Top Shot: ${topShotMoments.length} moments</p>
+                        <p class="big-text">🏈 AllDay: ${allDayMoments.length} moments</p>
+                        <p class="big-text">📊 Total: ${totalMoments} moments</p>
+                        <p><strong>Status:</strong> Our dynamic wallet system is working perfectly!</p>
+                        <p><strong>Wallet:</strong> ${testWallet}</p>
+                        <p><strong>Real Data:</strong> ✅ Retrieved from blockchain</p>
+                    `;
+                } else {
+                    outputDiv.innerHTML = `
+                        <p class="error big-text">❌ No Data Found</p>
+                        <p><strong>Wallet:</strong> ${testWallet}</p>
+                        <p><strong>TopShot:</strong> ${topShotMoments.length} moments</p>
+                        <p><strong>AllDay:</strong> ${allDayMoments.length} moments</p>
+                        <p><strong>Total:</strong> ${totalMoments} moments</p>
+                        <p><strong>Note:</strong> This wallet may not have NBA Top Shot moments</p>
+                    `;
+                }
+                
+            } catch (error) {
+                outputDiv.innerHTML = `
+                    <p class="error big-text">❌ System Error</p>
+                    <p><strong>Error:</strong> ${error.message}</p>
+                    <p><strong>Note:</strong> Make sure the server is running on localhost:3001</p>
+                `;
+            }
+        }
+    </script>
+</body>
+</html> 

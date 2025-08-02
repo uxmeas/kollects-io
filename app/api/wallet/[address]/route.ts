@@ -3,6 +3,7 @@ import * as fcl from '@onflow/fcl';
 import { GET_NFL_MOMENTS, GET_MOMENT_METADATA } from '@/lib/flow/scripts';
 import { getPlayData, generatePlaceholderPlayData, getAllDayUrl, generatePurchasePrice, generateMarketPrice, generatePurchaseDate } from '@/lib/flow/nfl-data';
 import { getLowestPrice, getMomentMetadata } from '@/lib/nflallday/api';
+import { getBestAvailablePrice } from '@/lib/nflallday/alternative-apis';
 
 // Configure FCL
 fcl.config({
@@ -72,8 +73,19 @@ export async function GET(
         // Get play data
         const playData = getPlayData(playID) || generatePlaceholderPlayData(playID);
         
-        // For market price, we'll show a message that real-time prices require API access
-        const marketPrice = null; // Will show as "-" in UI
+        // Try to get real market price from alternative sources
+        let marketPrice = null;
+        let priceSource = null;
+        
+        try {
+          const priceData = await getBestAvailablePrice(momentId);
+          if (priceData.price) {
+            marketPrice = priceData.price;
+            priceSource = priceData.source;
+          }
+        } catch (error) {
+          console.log('Could not fetch price for moment', momentId);
+        }
         
         return {
           id: momentId,
@@ -88,7 +100,7 @@ export async function GET(
           purchasePrice: userMomentData?.purchasePrice || null,
           marketPrice: marketPrice,
           purchaseDate: userMomentData?.purchaseDate || null,
-          notes: userMomentData?.notes || (marketPrice === null ? "Real-time prices require NFL All Day API access" : null),
+          notes: userMomentData?.notes || (priceSource ? `Price from ${priceSource}` : "Checking alternative price sources..."),
           transactionId: userMomentData?.transactionId || null,
           isUserData: !!userMomentData
         };

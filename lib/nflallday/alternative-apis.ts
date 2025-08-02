@@ -5,22 +5,16 @@
  * CONFIRMED WORKING OPTIONS:
  */
 
-// 1. Flowty.io API - Direct marketplace access
+// 1. Flowty.io API - Through proxy to avoid CORS
 export async function getFlowtyPrice(momentId: string): Promise<number | null> {
   try {
-    // Flowty is a major Flow NFT marketplace with NFL All Day listings
-    // Contract: 0xe4cf4bdc1751c65d
-    const response = await fetch(
-      `https://www.flowty.io/api/v1/collection/0xe4cf4bdc1751c65d/AllDay/listings?tokenId=${momentId}`
-    );
+    // Use our proxy endpoint to avoid CORS issues
+    const response = await fetch(`/api/prices/${momentId}`);
     
     if (response.ok) {
       const data = await response.json();
-      // Extract lowest listing price
-      const listings = data.listings || [];
-      if (listings.length > 0) {
-        const prices = listings.map((l: any) => l.price).filter((p: number) => p > 0);
-        return Math.min(...prices);
+      if (data.price && data.source === 'Flowty') {
+        return data.price;
       }
     }
     return null;
@@ -30,17 +24,17 @@ export async function getFlowtyPrice(momentId: string): Promise<number | null> {
   }
 }
 
-// 2. Flowverse NFT Marketplace - Alternative marketplace
+// 2. Flowverse NFT Marketplace - Through proxy to avoid CORS
 export async function getFlowversePrice(momentId: string): Promise<number | null> {
   try {
-    // Flowverse is another major Flow NFT marketplace
-    const response = await fetch(
-      `https://nft.flowverse.co/api/marketplace/AllDay/${momentId}`
-    );
+    // Use our proxy endpoint to avoid CORS issues
+    const response = await fetch(`/api/prices/${momentId}`);
     
     if (response.ok) {
       const data = await response.json();
-      return data.lowestPrice || null;
+      if (data.price && data.source === 'Flowverse') {
+        return data.price;
+      }
     }
     return null;
   } catch (error) {
@@ -107,21 +101,20 @@ export async function getBestAvailablePrice(momentId: string): Promise<{
   price: number | null;
   source: string;
 }> {
-  // Try multiple sources in order of reliability
-  
-  // 1. Try Flowty first (most active marketplace)
-  const flowtyPrice = await getFlowtyPrice(momentId);
-  if (flowtyPrice) {
-    return { price: flowtyPrice, source: 'Flowty' };
+  try {
+    // Use our proxy endpoint that handles all sources
+    const response = await fetch(`/api/prices/${momentId}`);
+    
+    if (response.ok) {
+      const data = await response.json();
+      return {
+        price: data.price || null,
+        source: data.source || 'none'
+      };
+    }
+  } catch (error) {
+    console.error('Price fetch error:', error);
   }
-  
-  // 2. Try Flowverse
-  const flowversePrice = await getFlowversePrice(momentId);
-  if (flowversePrice) {
-    return { price: flowversePrice, source: 'Flowverse' };
-  }
-  
-  // 3. Could add more sources here
   
   return { price: null, source: 'none' };
 }

@@ -1,3 +1,5 @@
+'use client';
+
 export default function BasicTest() {
   return (
     <div className="p-8">

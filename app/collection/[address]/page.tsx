@@ -9,6 +9,7 @@ import MomentListView from '@/components/MomentListView';
 import DenseListView from '@/components/DenseListView';
 import { getAllPurchaseData, savePurchaseData } from '@/lib/storage/purchase-data';
 import { scanMomentAcquisition } from '@/lib/flow/simple-event-scanner';
+import { useWallet } from '@/contexts/WalletContext';
 
 interface Moment {
   id: string;
@@ -32,6 +33,7 @@ interface Moment {
 export default function CollectionPage() {
   const params = useParams();
   const address = params.address as string;
+  const { user } = useWallet();
   const [moments, setMoments] = useState<Moment[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -41,6 +43,8 @@ export default function CollectionPage() {
   const [profitLoss, setProfitLoss] = useState(0);
   const [viewMode, setViewMode] = useState<'list' | 'card'>('list');
   const [scanning, setScanning] = useState(false);
+  
+  const isOwnCollection = user?.addr === address;
 
   useEffect(() => {
     if (address) {
@@ -155,12 +159,18 @@ export default function CollectionPage() {
     <div className="min-h-screen bg-gray-50 p-8">
       <div className="max-w-6xl mx-auto">
         <div className="mb-8">
-          <Link href="/" className="text-blue-500 hover:underline mb-4 inline-block">
-            ← Back
-          </Link>
           <h1 className="text-3xl font-bold">NFL All Day Collection</h1>
-          <p className="text-gray-600 mt-2">Wallet: {address}</p>
-          <p className="text-lg mt-1">Total Moments: {totalCount}</p>
+          <div className="flex items-center justify-between mt-2">
+            <div>
+              <p className="text-gray-600">Wallet: {address}</p>
+              <p className="text-lg mt-1">Total Moments: {totalCount}</p>
+            </div>
+            {isOwnCollection && (
+              <div className="bg-green-100 text-green-800 px-3 py-1 rounded-full text-sm font-medium">
+                Your Collection
+              </div>
+            )}
+          </div>
         </div>
 
         {/* View Mode Toggle and Actions */}

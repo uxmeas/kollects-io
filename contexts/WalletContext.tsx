@@ -49,9 +49,16 @@ export function WalletProvider({ children }: { children: ReactNode }) {
   const connect = async () => {
     setIsLoading(true);
     try {
-      await fcl.authenticate();
+      // Direct authentication with Dapper Wallet
+      await fcl.authenticate({
+        service: 'https://accounts.meetdapper.com/fcl/authn',
+      });
     } catch (error) {
-      console.error('Failed to connect wallet:', error);
+      console.error('Failed to connect Dapper wallet:', error);
+      // If user doesn't have Dapper, show helpful message
+      if (error instanceof Error && error.message.includes('User rejected')) {
+        alert('Please make sure you have a Dapper wallet account. Visit nflallday.com to create one.');
+      }
     } finally {
       setIsLoading(false);
     }

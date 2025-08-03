@@ -54,33 +54,6 @@ export default function Home() {
             </div>
           </div>
           
-          <div className="text-center my-4 text-gray-500">— OR —</div>
-          
-          <form onSubmit={handleSubmit} className="bg-white p-6 rounded-lg shadow-md">
-            <h2 className="text-xl font-semibold mb-4">View Any Wallet</h2>
-            <input
-              type="text"
-              value={address}
-              onChange={(e) => setAddress(e.target.value)}
-              placeholder="Enter Flow wallet address (0x...)"
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
-            <button 
-              type="submit"
-              className="w-full mt-4 bg-gray-700 text-white py-3 rounded-lg hover:bg-gray-800 transition"
-            >
-              View Collection
-            </button>
-          </form>
-        </div>
-        
-        <div className="mt-8 text-center">
-          <button
-            onClick={() => router.push('/test-wallet')}
-            className="text-blue-500 hover:underline"
-          >
-            Test with sample wallets →
-          </button>
         </div>
         
         <div className="mt-8 text-center text-sm text-gray-500">

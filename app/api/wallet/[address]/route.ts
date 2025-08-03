@@ -1,15 +1,8 @@
 import { NextResponse } from 'next/server';
-import * as fcl from '@onflow/fcl';
-import { GET_NFL_MOMENTS, GET_MOMENT_METADATA } from '@/lib/flow/scripts';
-import { getPlayData, generatePlaceholderPlayData, getAllDayUrl, generatePurchasePrice, generateMarketPrice, generatePurchaseDate } from '@/lib/flow/nfl-data';
-import { getLowestPrice, getMomentMetadata } from '@/lib/nflallday/api';
+import { getNFLAllDayService } from '@/lib/flow/nfl-allday-service';
+import { getAllDayMoments } from '@/lib/flow/nfl-allday-cadence';
 import { getBestAvailablePrice } from '@/lib/nflallday/alternative-apis';
 
-// Configure FCL
-fcl.config({
-  "accessNode.api": "https://rest-mainnet.onflow.org",
-  "flow.network": "mainnet"
-});
 
 export async function GET(
   request: Request,
@@ -30,103 +23,151 @@ export async function GET(
       );
     }
 
-    console.log('Fetching moments for address:', address);
-
-    // Fetch moment IDs
-    const momentIDs = await fcl.query({
-      cadence: GET_NFL_MOMENTS,
-      args: (arg: any, t: any) => [arg(address, t.Address)]
-    });
-
-    console.log('Found moment IDs:', momentIDs);
-
-    // For first 20 moments, get detailed data
-    const momentsToFetch = (momentIDs || []).slice(0, 20);
+    console.log('Fetching NFL All Day collection for address:', address);
     
-    // For now, we'll use the blockchain data we have and enhance it
-    const momentsWithData = await Promise.all(
-      momentsToFetch.map(async (momentId: string, index: number) => {
-        const userMomentData = userData[momentId];
-        
-        // Try to get real serial number and metadata from blockchain
-        let serialNumber = String((parseInt(momentId) % 10000) + 1);
-        let playID = String((parseInt(momentId) % 1000) + 1);
-        
-        try {
-          // Query blockchain for real moment data
-          const momentData = await fcl.query({
-            cadence: GET_MOMENT_METADATA,
-            args: (arg: any, t: any) => [
-              arg(address, t.Address),
-              arg(momentId, t.UInt64)
-            ]
-          });
-          
-          if (momentData) {
-            serialNumber = momentData.serialNumber || serialNumber;
-            playID = momentData.playID || playID;
+    // Initialize the NFL All Day service with available API keys
+    const service = getNFLAllDayService({
+      bitqueryApiKey: process.env.BITQUERY_API_KEY,
+      flipsideApiKey: process.env.FLIPSIDE_API_KEY,
+      quicknodeEndpoint: process.env.QUICKNODE_ENDPOINT,
+    });
+    
+    try {
+      // Try the comprehensive service first
+      const moments = await service.getCollectionWithHistory(address);
+      
+      if (moments && moments.length > 0) {
+        // Merge with any manual user data
+        moments.forEach(moment => {
+          const userPurchaseData = userData[moment.id];
+          if (userPurchaseData && !moment.purchasePrice) {
+            moment.purchasePrice = userPurchaseData.purchasePrice;
+            moment.purchaseDate = userPurchaseData.purchaseDate;
           }
-        } catch (error) {
-          console.log('Could not fetch moment metadata for', momentId);
-        }
+        });
         
-        // Get play data
-        const playData = getPlayData(playID) || generatePlaceholderPlayData(playID);
+        // Calculate totals
+        const totalPurchasePrice = moments.reduce(
+          (sum, m) => sum + (m.purchasePrice || 0),
+          0
+        );
+        const totalMarketValue = moments.reduce(
+          (sum, m) => sum + (m.currentPrice || 0),
+          0
+        );
+        const profitLoss = totalMarketValue - totalPurchasePrice;
         
-        // Try to get real market price from alternative sources
+        return NextResponse.json({
+          address,
+          moments,
+          totalCount: moments.length,
+          detailedCount: moments.length,
+          totalPurchasePrice,
+          totalMarketValue,
+          profitLoss,
+          timestamp: new Date().toISOString(),
+          dataSource: 'flow-blockchain',
+        });
+      }
+    } catch (serviceError) {
+      console.error('Service error, falling back to direct blockchain query:', serviceError);
+    }
+    
+    // Fallback to direct blockchain query
+    const rawMoments = await getAllDayMoments(address);
+    
+    if (!rawMoments || rawMoments.length === 0) {
+      return NextResponse.json({
+        address,
+        moments: [],
+        totalCount: 0,
+        detailedCount: 0,
+        totalPurchasePrice: 0,
+        totalMarketValue: 0,
+        profitLoss: 0,
+        timestamp: new Date().toISOString(),
+        error: 'No NFL All Day moments found. Make sure the wallet has NFL All Day collection initialized.',
+        helpText: 'If you own NFL All Day moments, try visiting nflallday.com to ensure your collection is properly initialized.',
+      });
+    }
+    
+    // Process raw moments with enhanced data
+    const processedMoments = await Promise.all(
+      rawMoments.slice(0, 20).map(async (moment: any) => {
+        // Get user's purchase data if available
+        const userPurchaseData = userData[moment.id];
+        
+        // Try to get real market price
         let marketPrice = null;
         let priceSource = null;
         
         try {
-          const priceData = await getBestAvailablePrice(momentId);
+          const priceData = await getBestAvailablePrice(moment.id);
           if (priceData.price) {
             marketPrice = priceData.price;
             priceSource = priceData.source;
           }
         } catch (error) {
-          console.log('Could not fetch price for moment', momentId);
+          console.log('Could not fetch price for moment', moment.id);
         }
         
         return {
-          id: momentId,
-          playID,
-          serialNumber,
-          player: playData.player,
-          playType: playData.playType,
-          description: playData.description,
-          series: playData.series,
-          alldayUrl: getAllDayUrl(momentId),
-          imageUrl: `https://assets.nflallday.com/resize/editions/series_${playData.series?.split(' ')[1] || '1'}/play_${playID}_capture_Hero_Black_2880_2880_Black.png?width=512`,
-          purchasePrice: userMomentData?.purchasePrice || null,
+          id: moment.id,
+          playID: moment.play?.id || moment.playID,
+          editionID: moment.editionID,
+          serialNumber: moment.serialNumber,
+          mintingDate: moment.mintingDate,
+          player: {
+            name: moment.play?.metadata?.playerName || 'Unknown Player',
+            position: moment.play?.metadata?.playerPosition,
+            team: moment.play?.metadata?.teamName,
+          },
+          playType: moment.play?.metadata?.playType,
+          description: moment.play?.description,
+          series: moment.series?.name,
+          imageUrl: `https://media.nflallday.com/editions/${moment.editionID}/play_${moment.play?.id}_capture_Hero_Black_2880_2880.png`,
+          videoUrl: `https://media.nflallday.com/editions/${moment.editionID}/play_${moment.play?.id}_capture_Hero_Black_2880_2880_Animated.mp4`,
+          alldayUrl: `https://nflallday.com/listing/moment/${moment.id}`,
+          purchasePrice: userPurchaseData?.purchasePrice || null,
           marketPrice: marketPrice,
-          purchaseDate: userMomentData?.purchaseDate || null,
-          notes: userMomentData?.notes || (priceSource ? `Price from ${priceSource}` : "Checking alternative price sources..."),
-          transactionId: userMomentData?.transactionId || null,
-          isUserData: !!userMomentData
+          currentPrice: marketPrice,
+          purchaseDate: userPurchaseData?.purchaseDate || null,
+          notes: userPurchaseData?.notes || (priceSource ? `Price from ${priceSource}` : null),
+          transactionId: userPurchaseData?.transactionId || null,
+          isUserData: !!userPurchaseData
         };
       })
     );
-
-    // Include remaining moments as just IDs
-    const remainingMoments = (momentIDs || []).slice(20).map((id: string) => ({ id }));
-
-    // Calculate totals (only for moments with user data)
-    const totalPurchasePrice = momentsWithData
+    
+    // Include remaining moments as minimal data
+    const remainingMoments = rawMoments.slice(20).map((moment: any) => ({
+      id: moment.id,
+      serialNumber: moment.serialNumber,
+      player: {
+        name: moment.play?.metadata?.playerName || 'Unknown Player',
+      }
+    }));
+    
+    // Calculate totals
+    const totalPurchasePrice = processedMoments
       .filter((m: any) => m.purchasePrice !== null)
       .reduce((sum: number, m: any) => sum + (m.purchasePrice || 0), 0);
-    const totalMarketValue = momentsWithData
+    const totalMarketValue = processedMoments
       .filter((m: any) => m.purchasePrice !== null)
       .reduce((sum: number, m: any) => sum + (m.marketPrice || 0), 0);
-
+    const profitLoss = totalMarketValue - totalPurchasePrice;
+    
     return NextResponse.json({
       address,
-      moments: [...momentsWithData, ...remainingMoments],
-      totalCount: (momentIDs || []).length,
-      detailedCount: momentsWithData.length,
+      moments: [...processedMoments, ...remainingMoments],
+      totalCount: rawMoments.length,
+      detailedCount: processedMoments.length,
       totalPurchasePrice,
       totalMarketValue,
-      profitLoss: totalMarketValue - totalPurchasePrice,
-      timestamp: new Date().toISOString()
+      profitLoss,
+      timestamp: new Date().toISOString(),
+      dataSource: 'flow-direct',
+      note: 'Purchase history requires API keys for Flipside or Bitquery. Add manual purchase data via the UI.',
     });
 
   } catch (error: any) {

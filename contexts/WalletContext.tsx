@@ -5,9 +5,9 @@ import * as fcl from '@onflow/fcl';
 import { configureFCL } from '@/lib/flow/fcl-config';
 
 interface User {
-  addr: string;
-  cid: string;
-  loggedIn: boolean;
+  addr?: string;
+  cid?: string;
+  loggedIn?: boolean;
 }
 
 interface WalletContextType {
@@ -28,7 +28,17 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     configureFCL();
     
     // Subscribe to auth state changes
-    const unsubscribe = fcl.currentUser.subscribe(setUser);
+    const unsubscribe = fcl.currentUser.subscribe((currentUser: any) => {
+      if (currentUser.loggedIn) {
+        setUser({
+          addr: currentUser.addr || '',
+          cid: currentUser.cid || '',
+          loggedIn: true
+        });
+      } else {
+        setUser(null);
+      }
+    });
     
     // Check initial auth state
     setIsLoading(false);

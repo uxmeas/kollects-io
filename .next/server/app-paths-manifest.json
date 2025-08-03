@@ -1,1 +1,18 @@
-{}
+{
+  "/_not-found/page": "app/_not-found/page.js",
+  "/api/prices/[momentId]/route": "app/api/prices/[momentId]/route.js",
+  "/api/test-price/[momentId]/route": "app/api/test-price/[momentId]/route.js",
+  "/api/test-real-price/route": "app/api/test-real-price/route.js",
+  "/api/wallet/[address]/history/route": "app/api/wallet/[address]/history/route.js",
+  "/api/wallet/[address]/purchase-history/route": "app/api/wallet/[address]/purchase-history/route.js",
+  "/api/wallet/[address]/route": "app/api/wallet/[address]/route.js",
+  "/basic-test/page": "app/basic-test/page.js",
+  "/collection/[address]/page": "app/collection/[address]/page.js",
+  "/debug/page": "app/debug/page.js",
+  "/demo/page": "app/demo/page.js",
+  "/test-buttons/page": "app/test-buttons/page.js",
+  "/test-wallet-simple/page": "app/test-wallet-simple/page.js",
+  "/minimal/page": "app/minimal/page.js",
+  "/page": "app/page.js",
+  "/test-wallet/page": "app/test-wallet/page.js"
+}

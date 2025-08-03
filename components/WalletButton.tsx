@@ -25,7 +25,7 @@ export default function WalletButton() {
     );
   }
 
-  if (user?.loggedIn) {
+  if (user?.loggedIn && user.addr) {
     return (
       <div className="flex items-center gap-3">
         <button

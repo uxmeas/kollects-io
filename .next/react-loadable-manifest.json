@@ -1,1 +1,28 @@
-{}
+{
+  "node_modules/@onflow/fcl-wc/dist/index.module.mjs -> @walletconnect/modal": {
+    "id": 5318,
+    "files": [
+      "static/chunks/318.dff822286421ad74.js"
+    ]
+  },
+  "node_modules/@walletconnect/modal/dist/index.js -> @walletconnect/modal-ui": {
+    "id": 866,
+    "files": [
+      "static/chunks/866.23a2431533b89df0.js"
+    ]
+  },
+  "node_modules/viem/_esm/actions/public/call.js -> ../../utils/ccip.js": {
+    "id": null,
+    "files": []
+  },
+  "node_modules/viem/_esm/utils/rpc/webSocket.js -> isows": {
+    "id": null,
+    "files": []
+  },
+  "node_modules/viem/_esm/utils/signature/recoverPublicKey.js -> @noble/curves/secp256k1": {
+    "id": 9541,
+    "files": [
+      "static/chunks/541.8ded6d82921b5fbb.js"
+    ]
+  }
+}

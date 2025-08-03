@@ -15,8 +15,8 @@ export async function GET(
   try {
     const { address } = params;
 
-    // Validate address format
-    if (!address.match(/^0x[a-fA-F0-9]{16}$/)) {
+    // Validate address format - Flow addresses can have varying lengths
+    if (!address.match(/^0x[a-fA-F0-9]+$/)) {
       return NextResponse.json(
         { error: 'Invalid Flow address format' },
         { status: 400 }

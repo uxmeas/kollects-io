@@ -36,18 +36,21 @@ export default function Home() {
         
         <div className="max-w-md mx-auto">
           <div className="bg-white p-6 rounded-lg shadow-md mb-6">
-            <h2 className="text-xl font-semibold mb-4">Connect Your Wallet</h2>
+            <h2 className="text-xl font-semibold mb-4">Connect Your Dapper Wallet</h2>
             <p className="text-gray-600 mb-4">
-              Connect with your Dapper, Blocto, or Lilico wallet to view your NFL All Day collection.
+              Sign in with your NFL All Day Dapper account to view your collection.
             </p>
             <div className="bg-blue-50 border border-blue-200 rounded p-3 mb-4">
               <p className="text-sm text-blue-800">
-                <strong>🔒 Secure Authentication:</strong> We never see your password or private keys. 
-                Authentication happens directly with your wallet provider.
+                <strong>🔒 Secure Authentication:</strong> You'll be redirected to Dapper to login, 
+                just like on NFL All Day. We never see your password.
               </p>
             </div>
             <div className="flex justify-center">
               <WalletButton />
+            </div>
+            <div className="mt-4 text-xs text-gray-500 text-center">
+              <p>First time? You may need to enable "Account Linking" in your Dapper settings.</p>
             </div>
           </div>
           

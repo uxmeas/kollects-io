@@ -9,11 +9,9 @@ export const configureFCL = () => {
     'discovery.wallet': 'https://fcl-discovery.onflow.org/authn',
     'discovery.authn.endpoint': 'https://fcl-discovery.onflow.org/api/authn',
     'flow.network': 'mainnet',
-    // Include wallets
+    // Only include Dapper Wallet for NFL All Day
     'discovery.authn.include': [
       '0x82ec283f88a62e65', // Dapper Wallet
-      '0xd2aaaa60e9cafb7f', // Blocto
-      '0x9d2e44203cb13051', // Lilico
     ],
   });
 };

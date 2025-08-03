@@ -10,6 +10,7 @@
   },
   "dependencies": {
     "@onflow/fcl": "^1.12.0",
+    "@onflow/fcl-wc": "^6.0.5",
     "@onflow/types": "^1.3.0",
     "@tanstack/react-query": "^5.0.0",
     "axios": "^1.6.0",
